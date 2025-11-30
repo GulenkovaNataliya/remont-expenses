@@ -34,6 +34,11 @@
             text-align: center;
         }
 
+        h2, h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
         .summary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -46,6 +51,89 @@
         .summary h2 {
             font-size: 2.5em;
             margin-bottom: 5px;
+        }
+
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-card h3 {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #555;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            color: #333;
+            font-weight: 700;
+        }
+
+        .filters-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            width: auto;
+        }
+
+        .filter-btn:hover {
+            background: #5568d3;
+        }
+
+        .reset-btn {
+            background: #95a5a6;
+        }
+
+        .reset-btn:hover {
+            background: #7f8c8d;
         }
 
         .form-section {
@@ -180,7 +268,11 @@
         }
 
         @media (max-width: 768px) {
-            .form-row {
+            .form-row, .filter-row {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-section {
                 grid-template-columns: 1fr;
             }
 
@@ -190,6 +282,10 @@
 
             th, td {
                 padding: 8px;
+            }
+
+            .filter-buttons {
+                flex-direction: column;
             }
         }
     </style>
@@ -201,6 +297,69 @@
         <div class="summary">
             <p>Общая сумма расходов</p>
             <h2 id="totalAmount">0.00 €</h2>
+            <p id="expenseCount">0 записей</p>
+        </div>
+
+        <div class="stats-section">
+            <div class="stat-card">
+                <h3>📊 По категориям</h3>
+                <div id="categoryStats"></div>
+            </div>
+            <div class="stat-card">
+                <h3>💳 По способам оплаты</h3>
+                <div id="paymentStats"></div>
+            </div>
+            <div class="stat-card">
+                <h3>📅 По месяцам</h3>
+                <div id="monthStats"></div>
+            </div>
+        </div>
+
+        <div class="filters-section">
+            <h3>Фильтры</h3>
+            <div class="filter-row">
+                <div class="form-group">
+                    <label for="filterCategory">Категория</label>
+                    <select id="filterCategory">
+                        <option value="">Все категории</option>
+                        <option value="Обои и декор">Обои и декор</option>
+                        <option value="Напольное покрытие">Напольное покрытие</option>
+                        <option value="Краска и лаки">Краска и лаки</option>
+                        <option value="Электрика">Электрика</option>
+                        <option value="Сантехника">Сантехника</option>
+                        <option value="Работа мастеров">Работа мастеров</option>
+                        <option value="Инструменты">Инструменты</option>
+                        <option value="Мебель">Мебель</option>
+                        <option value="Двери и окна">Двери и окна</option>
+                        <option value="Стройматериалы">Стройматериалы</option>
+                        <option value="Доставка">Доставка</option>
+                        <option value="Другое">Другое</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="filterPayment">Способ оплаты</label>
+                    <select id="filterPayment">
+                        <option value="">Все способы</option>
+                        <option value="Наличные">Наличные</option>
+                        <option value="Карта">Карта</option>
+                        <option value="Перевод">Перевод</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-row">
+                <div class="form-group">
+                    <label for="filterDateFrom">Дата с</label>
+                    <input type="date" id="filterDateFrom">
+                </div>
+                <div class="form-group">
+                    <label for="filterDateTo">Дата по</label>
+                    <input type="date" id="filterDateTo">
+                </div>
+            </div>
+            <div class="filter-buttons">
+                <button class="filter-btn" onclick="applyFilters()">Применить фильтры</button>
+                <button class="filter-btn reset-btn" onclick="resetFilters()">Сбросить</button>
+            </div>
         </div>
 
         <div class="error" id="errorMessage"></div>
@@ -287,21 +446,16 @@
     </div>
 
     <script>
-        // ========================================
-        // ВАЖНО! НАСТРОЙТЕ ЗДЕСЬ ВАШИ ДАННЫЕ SUPABASE
-        // ========================================
         const SUPABASE_URL = 'https://pfajkpetwkjivvmkkemr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmYWprcGV0d2tqaXZ2bWtrZW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMzI1MDYsImV4cCI6MjA3OTcwODUwNn0.lT9M9cthoYOa9OD9b2gUjxpG2kE9pNp8_Tj7qch9x00';
 
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Установка сегодняшней даты по умолчанию
-        document.getElementById('date').valueAsDate = new Date();
+        let allExpenses = [];
 
-        // Загрузка расходов при загрузке страницы
+        document.getElementById('date').valueAsDate = new Date();
         loadExpenses();
 
-        // Обработка формы добавления расхода
         document.getElementById('expenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             await addExpense();
@@ -343,11 +497,120 @@
 
                 if (error) throw error;
 
-                displayExpenses(data);
-                updateTotal(data);
+                allExpenses = data;
+                applyFilters();
             } catch (error) {
                 showError('Ошибка при загрузке данных: ' + error.message);
             }
+        }
+
+        function applyFilters() {
+            const categoryFilter = document.getElementById('filterCategory').value;
+            const paymentFilter = document.getElementById('filterPayment').value;
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo = document.getElementById('filterDateTo').value;
+
+            let filtered = allExpenses.filter(expense => {
+                if (categoryFilter && expense.category !== categoryFilter) return false;
+                if (paymentFilter && expense.payment_method !== paymentFilter) return false;
+                if (dateFrom && expense.date < dateFrom) return false;
+                if (dateTo && expense.date > dateTo) return false;
+                return true;
+            });
+
+            displayExpenses(filtered);
+            updateStats(filtered);
+        }
+
+        function resetFilters() {
+            document.getElementById('filterCategory').value = '';
+            document.getElementById('filterPayment').value = '';
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+            applyFilters();
+        }
+
+        function updateStats(expenses) {
+            updateTotal(expenses);
+            updateCategoryStats(expenses);
+            updatePaymentStats(expenses);
+            updateMonthStats(expenses);
+        }
+
+        function updateTotal(expenses) {
+            const total = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
+            document.getElementById('totalAmount').textContent = total.toFixed(2) + ' €';
+            document.getElementById('expenseCount').textContent = `${expenses.length} ${getRecordsWord(expenses.length)}`;
+        }
+
+        function getRecordsWord(count) {
+            if (count % 10 === 1 && count % 100 !== 11) return 'запись';
+            if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return 'записи';
+            return 'записей';
+        }
+
+        function updateCategoryStats(expenses) {
+            const stats = {};
+            expenses.forEach(exp => {
+                stats[exp.category] = (stats[exp.category] || 0) + parseFloat(exp.amount);
+            });
+
+            const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]);
+            const html = sorted.length > 0
+                ? sorted.map(([cat, amount]) => `
+                    <div class="stat-item">
+                        <span class="stat-label">${cat}</span>
+                        <span class="stat-value">${amount.toFixed(2)} €</span>
+                    </div>
+                `).join('')
+                : '<div class="stat-item"><span class="stat-label">Нет данных</span></div>';
+
+            document.getElementById('categoryStats').innerHTML = html;
+        }
+
+        function updatePaymentStats(expenses) {
+            const stats = {};
+            expenses.forEach(exp => {
+                const method = exp.payment_method || 'Не указано';
+                stats[method] = (stats[method] || 0) + parseFloat(exp.amount);
+            });
+
+            const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]);
+            const html = sorted.length > 0
+                ? sorted.map(([method, amount]) => `
+                    <div class="stat-item">
+                        <span class="stat-label">${method}</span>
+                        <span class="stat-value">${amount.toFixed(2)} €</span>
+                    </div>
+                `).join('')
+                : '<div class="stat-item"><span class="stat-label">Нет данных</span></div>';
+
+            document.getElementById('paymentStats').innerHTML = html;
+        }
+
+        function updateMonthStats(expenses) {
+            const stats = {};
+            expenses.forEach(exp => {
+                const date = new Date(exp.date);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                const monthName = date.toLocaleDateString('ru-RU', { year: 'numeric', month: 'long' });
+                stats[monthKey] = {
+                    name: monthName,
+                    amount: (stats[monthKey]?.amount || 0) + parseFloat(exp.amount)
+                };
+            });
+
+            const sorted = Object.entries(stats).sort((a, b) => b[0].localeCompare(a[0]));
+            const html = sorted.length > 0
+                ? sorted.map(([key, data]) => `
+                    <div class="stat-item">
+                        <span class="stat-label">${data.name}</span>
+                        <span class="stat-value">${data.amount.toFixed(2)} €</span>
+                    </div>
+                `).join('')
+                : '<div class="stat-item"><span class="stat-label">Нет данных</span></div>';
+
+            document.getElementById('monthStats').innerHTML = html;
         }
 
         function displayExpenses(expenses) {
@@ -388,11 +651,6 @@
             } catch (error) {
                 showError('Ошибка при удалении: ' + error.message);
             }
-        }
-
-        function updateTotal(expenses) {
-            const total = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
-            document.getElementById('totalAmount').textContent = total.toFixed(2) + ' €';
         }
 
         function formatDate(dateString) {
